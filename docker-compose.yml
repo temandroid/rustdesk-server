@@ -1,0 +1,45 @@
+# Self-hosted RustDesk ID/relay servers patched for rustdesk-api-srv.
+#
+# Image: ghcr.io/temandroid/rustdesk-server:latest
+#        (also published as temandroid/rustdesk-server:latest when Docker Hub
+#         credentials are configured in CI)
+#
+# Typical layout on the host:
+#   /data/rustdesk/docker-compose.yml   (this file)
+#   /data/rustdesk/data/                (keys + peer db; mount as /root)
+#
+# Point rustdesk-api-srv at the same key:
+#   ID_SERVER=<this host>
+#   RUSTDESK_KEY=<contents of data/id_ed25519.pub>
+#   PUBLIC_URL=https://your-api.example.com
+#
+# API_SERVER is where hbbs forwards client HttpProxyRequest traffic.
+# Use the loopback URL when the API listens on the same host (host network).
+
+services:
+  hbbs:
+    container_name: hbbs
+    image: ghcr.io/temandroid/rustdesk-server:latest
+    command: hbbs
+    environment:
+      # Co-located API on the host (network_mode: host). For a remote API use HTTPS:
+      # API_SERVER: https://api.example.com
+      API_SERVER: ${API_SERVER:-http://127.0.0.1:21114}
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - ./data:/root
+    network_mode: host
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+
+  hbbr:
+    container_name: hbbr
+    image: ghcr.io/temandroid/rustdesk-server:latest
+    command: hbbr
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - ./data:/root
+    network_mode: host
+    restart: unless-stopped

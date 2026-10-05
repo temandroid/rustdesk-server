@@ -1,0 +1,17 @@
+# Build context exclusions for the patched temandroid image.
+target
+.git
+.github
+ui
+docker
+docker-classic
+debian
+*.md
+!README.md
+docker-compose*.yml
+data
+id*
+test.*
+.vscode
+.idea
+.DS_Store
