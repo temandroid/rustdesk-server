@@ -593,6 +593,13 @@ impl RendezvousServer {
                     Self::send_to_sink(sink, crate::api_proxy::wrap_response(resp)).await;
                     return true;
                 }
+                // Desktop clients ask on the NAT-test port (21115) over TCP; a
+                // browser can only reach the WebSocket port, so answer here too.
+                Some(rendezvous_message::Union::OnlineRequest(or)) if ws => {
+                    let msg_out = self.online_response(&or.peers).await;
+                    Self::send_to_sink(sink, msg_out).await;
+                    return true;
+                }
                 _ => {}
             }
         }
@@ -826,6 +833,15 @@ impl RendezvousServer {
         stream: &mut FramedStream,
         peers: Vec<String>,
     ) -> ResultType<()> {
+        let msg_out = self.online_response(&peers).await;
+        stream.send(&msg_out).await?;
+
+        Ok(())
+    }
+
+    /// One bit per requested peer, most significant bit first: set when the
+    /// peer registered within REG_TIMEOUT.
+    async fn online_response(&mut self, peers: &[String]) -> RendezvousMessage {
         let mut states = BytesMut::zeroed((peers.len() + 7) / 8);
         for (i, peer_id) in peers.iter().enumerate() {
             if let Some(peer) = self.pm.get_in_memory(peer_id).await {
@@ -844,9 +860,7 @@ impl RendezvousServer {
             states: states.into(),
             ..Default::default()
         });
-        stream.send(&msg_out).await?;
-
-        Ok(())
+        msg_out
     }
 
     #[inline]
