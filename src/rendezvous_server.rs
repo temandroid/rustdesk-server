@@ -66,6 +66,9 @@ static ALWAYS_USE_RELAY: AtomicBool = AtomicBool::new(false);
 // Store punch hole requests
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex as TokioMutex; // differentiate if needed
+/// Most peer ids one OnlineRequest on the WebSocket port may ask about.
+const MAX_ONLINE_QUERY_PEERS: usize = 2000;
+
 #[derive(Clone)]
 struct PunchReqEntry { tm: Instant, from_ip: String, to_ip: String, to_id: String }
 static PUNCH_REQS: Lazy<TokioMutex<Vec<PunchReqEntry>>> = Lazy::new(|| TokioMutex::new(Vec::new()));
@@ -595,10 +598,13 @@ impl RendezvousServer {
                 }
                 // Desktop clients ask on the NAT-test port (21115) over TCP; a
                 // browser can only reach the WebSocket port, so answer here too.
-                Some(rendezvous_message::Union::OnlineRequest(or)) if ws => {
+                Some(rendezvous_message::Union::OnlineRequest(mut or)) if ws => {
+                    // Bounded like any public endpoint; one answer per
+                    // connection, as on 21115 (the web client asks again).
+                    or.peers.truncate(MAX_ONLINE_QUERY_PEERS);
                     let msg_out = self.online_response(&or.peers).await;
                     Self::send_to_sink(sink, msg_out).await;
-                    return true;
+                    return false;
                 }
                 _ => {}
             }
