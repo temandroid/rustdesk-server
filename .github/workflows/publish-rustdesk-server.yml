@@ -53,6 +53,29 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      # sqlx query! macros check SQL against a live schema at compile time
+      # (same schema as in the Dockerfile).
+      - name: SQLite schema for sqlx
+        run: |
+          sqlite3 db_v2.sqlite3 "
+          create table if not exists peer (
+            guid blob primary key not null,
+            id varchar(100) not null,
+            uuid blob not null,
+            pk blob not null,
+            created_at datetime not null default(current_timestamp),
+            user blob,
+            status tinyint,
+            note varchar(300),
+            info text not null
+          ) without rowid;
+          create unique index if not exists index_peer_id on peer (id);
+          create index if not exists index_peer_user on peer (user);
+          create index if not exists index_peer_created_at on peer (created_at);
+          create index if not exists index_peer_status on peer (status);
+          "
+          echo "DATABASE_URL=sqlite://$PWD/db_v2.sqlite3" >> "$GITHUB_ENV"
+
       - name: API proxy unit tests
         run: cargo test --locked --lib api_proxy::tests
 
