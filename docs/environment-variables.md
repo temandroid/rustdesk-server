@@ -48,8 +48,9 @@ in the inherited process environment.
 | `ALWAYS_USE_RELAY` 🅴 | *(none)* | `N` | `Y` forces every session through a relay (disables direct/hole‑punched connections). At runtime, send `always-use-relay Y` or `always-use-relay N` to the `hbbs` [loopback console](#runtime-console). |
 | `DB_URL` 🅴 | *(none)* | `./db_v2.sqlite3` | Path/URL of the SQLite database file. See [Database](#database). |
 | `MAX_DATABASE_CONNECTIONS` 🅴 | *(none)* | `1` | Size of the SQLite connection pool. |
-| `MAX_PUNCH_REQUESTS` 🅴 | *(none)* | `100000` | Number of punch-request records kept in memory for the `punch-requests` console command; the oldest is dropped when full. `0` disables recording. |
-| `API_SERVER` | `--api-server` | `http://127.0.0.1:<PORT-2>` | **This fork.** HTTP(S) origin for client `HttpProxyRequest` fallback (`/api/*` only). Plain HTTP allowed for loopback; remote origins must be HTTPS. |
+| `MAX_PUNCH_REQUESTS` 🅴 | *(none)* | `100000` | Number of punch-request records kept in memory for the `punch-requests` [console](#runtime-console) command; the oldest is dropped when full. `0` disables recording. |
+| `MAX_MESSAGE_KB` 🅴 | *(none)* | `64` | Largest message, in KiB, that `hbbs` accepts on its TCP and WebSocket listeners; a connection that sends a bigger one is dropped. Capped at `65536`. The default fits an online-status query for about 5000 standard 9–10 digit IDs, fewer with long custom IDs; a client whose query is too big shows no online status. |
+| `API_SERVER` | `--api-server` | `http://127.0.0.1:<PORT-2>` | **This fork.** HTTP(S) origin for client `HttpProxyRequest` fallback (`/api/*` only). Plain HTTP allowed for loopback; remote origins must be HTTPS. A proxied request travels inside one hbbs message, so its body is also bounded by `MAX_MESSAGE_KB` (64 KiB by default); raise it if large address-book uploads must work through the proxy. |
 
 🅴 = set through the inherited process environment.
 
